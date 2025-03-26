@@ -20,7 +20,7 @@ def update_location():
         print("Received Data:", data)  # Debugging
         if not data:
             return jsonify({"error": "No data received"}), 400
-        if 'bus_no' not in data or 'lat' not in data or 'lng' not in data:
+        if 'bus_no' not in data or 'latitude' not in data or 'longitute' not in data:
             return jsonify({"error": "Missing required fields"}), 400  # Debug issue
 
         bus_no = data['bus_no']
