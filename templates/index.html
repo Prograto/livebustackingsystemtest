@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Tracker</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin-top: 100px;
+        }
+        input, button {
+            font-size: 1.2em;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🚌 Enter Bus Number to Track</h2>
+    <form id="busForm">
+        <input type="text" id="bus_no" placeholder="Enter Bus No" required>
+        <button type="submit">Track Bus</button>
+    </form>
+
+    <script>
+        document.getElementById('busForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const busNo = document.getElementById('bus_no').value.trim();
+            if (busNo) {
+                window.location.href = `/track/${busNo}`;
+            }
+        });
+    </script>
+
+</body>
+</html>
