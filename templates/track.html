@@ -3,99 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus Route Tracker</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>Live Bus Tracking</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <style>
-        #map { height: 80vh; width: 100%; margin-bottom: 10px; }
-        #info-box {
+        body {
+            font-family: Arial, sans-serif;
             text-align: center;
-            font-size: 1.2em;
-            margin-top: 10px;
-            padding: 10px;
-            background: #f3f3f3;
-            border: 2px solid #007bff;
-            border-radius: 10px;
-            color: #333;
         }
-        .leaflet-control-container .leaflet-control-attribution {
-            display: none !important;
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .info {
+            margin: 10px;
+            font-size: 18px;
         }
     </style>
 </head>
 <body>
+    <h1>Live Bus Tracking</h1>
+    <p>Tracking Bus No: <strong id="bus_no"></strong></p>
+    <div class="info">Current Location: <span id="location">Loading...</span></div>
+    <div class="info">Latitude: <span id="lat">0</span>, Longitude: <span id="lng">0</span></div>
+    <div id="map"></div>
 
-<h2 style="text-align:center; margin-top:20px;">🚌 Tracking Bus No: <span id="bus_no"></span></h2>
+    <script>
+        const busNo = window.location.pathname.split("/").pop();
+        document.getElementById("bus_no").innerText = busNo;
 
-<div id="map"></div>
+        const map = L.map('map').setView([0, 0], 15);
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Chandusmarttechtuts'
+        }).addTo(map);
 
-<div id="info-box">
-    <strong>📍 Current Location:</strong> <span id="location">Waiting for data...</span> <br/>
-    <strong>🌐 Latitude:</strong> <span id="lat">-</span>, <strong>Longitude:</strong> <span id="lng">-</span>
-</div>
+        const busIcon = L.icon({
+            iconUrl: "/static/images/bus.png", // Ensure this path is correct
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-    const busNo = window.location.pathname.split("/").pop();
-    document.getElementById("bus_no").innerText = busNo;
+        let polyline = L.polyline([], { color: 'blue' }).addTo(map);
+        let marker = null;
 
-    const map = L.map('map').setView([0, 0], 15);
-    
-    L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        attribution: '&copy; Chandusmarttechtuts'
-    }).addTo(map);
+        async function updateMap() {
+            try {
+                const response = await fetch(`/get_locations/${busNo}`);
+                const locations = await response.json();
 
-    const busIcon = L.icon({
-        iconUrl: "{{ url_for('static', filename='images/bus.png') }}", 
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        popupAnchor: [0, -35]
-    });
+                console.log("Fetched locations:", locations);
 
-    let polyline = L.polyline([], { color: 'blue' }).addTo(map);
-    let marker;
+                if (locations.length === 0) {
+                    console.warn("No valid location data available");
+                    return;
+                }
 
-    async function updateMap() {
-        try {
-            const response = await fetch(`/get_locations/${busNo}`);
-            const locations = await response.json();
+                const lastLocation = locations[locations.length - 1];
 
-            console.log("Fetched locations:", locations); // Debugging
+                if (!lastLocation.latitude || !lastLocation.longitude) {
+                    console.warn("Invalid location data:", lastLocation);
+                    return;
+                }
 
-            // Filter out invalid locations
-            const validLocations = locations.filter(loc => loc.lat !== null && loc.lng !== null);
+                const lastLatLng = [lastLocation.latitude, lastLocation.longitude];
 
-            if (validLocations.length === 0) {
-                console.warn("No valid location data available");
-                return;
+                if (marker) {
+                    marker.setLatLng(lastLatLng);
+                } else {
+                    marker = L.marker(lastLatLng, { icon: busIcon }).addTo(map);
+                }
+
+                polyline.setLatLngs(locations.map(loc => [loc.latitude, loc.longitude]));
+
+                map.setView(lastLatLng, 18, { animate: true });
+
+                document.getElementById('location').innerText = lastLocation.area || "Unknown";
+                document.getElementById('lat').innerText = lastLocation.latitude;
+                document.getElementById('lng').innerText = lastLocation.longitude;
+            } catch (error) {
+                console.error("Error fetching bus data:", error);
             }
-
-            const latlngs = validLocations.map(loc => [loc.lat, loc.lng]);
-            polyline.setLatLngs(latlngs);
-
-            const lastLocation = validLocations[validLocations.length - 1];
-            const lastLatLng = [lastLocation.lat, lastLocation.lng];
-
-            if (marker) {
-                marker.setLatLng(lastLatLng);
-            } else {
-                marker = L.marker(lastLatLng, { icon: busIcon }).addTo(map);
-            }
-
-            map.setView(lastLatLng, 18, { animate: true });
-
-            document.getElementById('location').innerText = lastLocation.area || "Unknown";
-            document.getElementById('lat').innerText = lastLocation.lat;
-            document.getElementById('lng').innerText = lastLocation.lng;
-        } catch (error) {
-            console.error("Error fetching bus data:", error);
         }
-    }
 
-
-
-    setInterval(updateMap, 3000);
-</script>
-
+        setInterval(updateMap, 3000);
+    </script>
 </body>
 </html>
