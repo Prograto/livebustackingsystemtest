@@ -3,90 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Bus Tracking</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <title>Bus Route Tracker</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
             text-align: center;
+            background: #f4f4f4;
         }
-        #map {
-            height: 400px;
-            width: 100%;
-            margin-top: 10px;
+        h2 {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            margin: 0;
         }
-        .info {
-            margin: 10px;
-            font-size: 18px;
+        #map { 
+            height: 70vh; 
+            width: 90%; 
+            margin: 20px auto;
+            border-radius: 10px;
+            border: 2px solid #007bff;
+        }
+        #info-box {
+            font-size: 1.2em;
+            padding: 15px;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            width: 80%;
+            margin: auto;
+            color: #333;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .highlight {
+            color: #d9534f;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Live Bus Tracking</h1>
-    <p>Tracking Bus No: <strong id="bus_no"></strong></p>
-    <div class="info">Current Location: <span id="location">Loading...</span></div>
-    <div class="info">Latitude: <span id="lat">0</span>, Longitude: <span id="lng">0</span></div>
-    <div id="map"></div>
 
-    <script>
-        const busNo = window.location.pathname.split("/").pop();
-        document.getElementById("bus_no").innerText = busNo;
+<h2>🚌 Tracking Bus No: <span id="bus_no"></span></h2>
 
-        const map = L.map('map').setView([0, 0], 15);
-        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-            attribution: '&copy; Chandusmarttechtuts'
-        }).addTo(map);
+<div id="map"></div>
 
-        const busIcon = L.icon({
-            iconUrl: "/static/images/bus.png", // Ensure this path is correct
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
-        });
+<div id="info-box">
+    <strong>📍 Area:</strong> <span class="highlight" id="area">Fetching...</span> <br/>
+    <strong>🌐 Latitude:</strong> <span id="lat">-</span>, <strong>Longitude:</strong> <span id="lng">-</span>
+</div>
 
-        let polyline = L.polyline([], { color: 'blue' }).addTo(map);
-        let marker = null;
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    const busNo = window.location.pathname.split("/").pop();
+    document.getElementById("bus_no").innerText = busNo;
 
-        async function updateMap() {
-            try {
-                const response = await fetch(`/get_locations/${busNo}`);
-                const locations = await response.json();
+    const map = L.map('map').setView([0, 0], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap Contributors'
+    }).addTo(map);
 
-                console.log("Fetched locations:", locations);
+    const busIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/128/891/891399.png", 
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+        popupAnchor: [0, -30]
+    });
 
-                if (locations.length === 0) {
-                    console.warn("No valid location data available");
-                    return;
-                }
+    let polyline = L.polyline([], { color: 'blue' }).addTo(map);
+    let marker;
 
-                const lastLocation = locations[locations.length - 1];
+    async function updateMap() {
+        try {
+            const response = await fetch(`/get_locations/${busNo}`);
+            const locations = await response.json();
 
-                if (!lastLocation.latitude || !lastLocation.longitude) {
-                    console.warn("Invalid location data:", lastLocation);
-                    return;
-                }
+            console.log("Fetched locations:", locations); 
 
-                const lastLatLng = [lastLocation.latitude, lastLocation.longitude];
-
-                if (marker) {
-                    marker.setLatLng(lastLatLng);
-                } else {
-                    marker = L.marker(lastLatLng, { icon: busIcon }).addTo(map);
-                }
-
-                polyline.setLatLngs(locations.map(loc => [loc.latitude, loc.longitude]));
-
-                map.setView(lastLatLng, 18, { animate: true });
-
-                document.getElementById('location').innerText = lastLocation.area || "Unknown";
-                document.getElementById('lat').innerText = lastLocation.latitude;
-                document.getElementById('lng').innerText = lastLocation.longitude;
-            } catch (error) {
-                console.error("Error fetching bus data:", error);
+            if (locations.length === 0) {
+                console.warn("No location data available");
+                return;
             }
-        }
 
-        setInterval(updateMap, 3000);
-    </script>
+            const validLocations = locations.filter(loc => loc.lat !== null && loc.lng !== null);
+            if (validLocations.length === 0) return;
+
+            const latlngs = validLocations.map(loc => [loc.lat, loc.lng]);
+            polyline.setLatLngs(latlngs);
+
+            const lastLocation = validLocations[validLocations.length - 1];
+            const lastLatLng = [lastLocation.lat, lastLocation.lng];
+
+            if (marker) {
+                marker.setLatLng(lastLatLng);
+            } else {
+                marker = L.marker(lastLatLng, { icon: busIcon }).addTo(map);
+            }
+
+            map.setView(lastLatLng, 18, { animate: true });
+
+            document.getElementById('area').innerText = lastLocation.area || "Unknown";
+            document.getElementById('lat').innerText = lastLocation.lat;
+            document.getElementById('lng').innerText = lastLocation.lng;
+        } catch (error) {
+            console.error("Error fetching bus data:", error);
+        }
+    }
+
+    setInterval(updateMap, 3000);
+</script>
+
 </body>
 </html>

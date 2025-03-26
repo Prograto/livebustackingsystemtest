@@ -1,17 +1,11 @@
 from flask import Flask, request, jsonify, render_template
+from geopy.geocoders import Nominatim
 
 app = Flask(__name__)
+geolocator = Nominatim(user_agent="bus_tracker")
 
-# Store bus locations in a dictionary {bus_no: [{'latitude': xx, 'longitude': yy, 'area': 'xyz'}]}
+# Store bus locations {bus_no: [{'lat': xx, 'lng': yy, 'area': 'xyz'}]}
 bus_locations = {}
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/track/<bus_no>')
-def track(bus_no):
-    return render_template('track.html')
 
 @app.route('/update_location', methods=['POST'])
 def update_location():
@@ -19,18 +13,20 @@ def update_location():
         data = request.get_json()
         print("Received Data:", data)  # Debugging
 
-        if not data:
-            return jsonify({"error": "No data received"}), 400
-        if 'bus_no' not in data or 'latitude' not in data or 'longitude' not in data:
-            return jsonify({"error": "Missing required fields"}), 400
+        if not data or 'bus_no' not in data or 'latitude' not in data or 'longitude' not in data:
+            return jsonify({"error": "Missing required fields"}), 400  
 
-        if not isinstance(data.get('latitude'), (int, float)) or not isinstance(data.get('longitude'), (int, float)):
-            return jsonify({"error": "Invalid latitude or longitude"}), 400
-
+        lat, lng = data['latitude'], data['longitude']
         bus_no = data['bus_no']
+
+        # Get Area using Geopy
+        location = geolocator.reverse((lat, lng), language="en")
+        area = location.address if location else "Unknown"
+
+        # Save data
         if bus_no not in bus_locations:
             bus_locations[bus_no] = []
-        bus_locations[bus_no].append(data)
+        bus_locations[bus_no].append({"lat": lat, "lng": lng, "area": area})
 
         return jsonify({"status": "success"}), 200
 
@@ -40,9 +36,7 @@ def update_location():
 
 @app.route('/get_locations/<bus_no>')
 def get_locations(bus_no):
-    data = bus_locations.get(bus_no, [])
-    print(f"Bus: {bus_no}, Data in Server: {data}")  # Debugging
-    return jsonify(data)
+    return jsonify(bus_locations.get(bus_no, []))
 
 if __name__ == '__main__':
     app.run(debug=True)
