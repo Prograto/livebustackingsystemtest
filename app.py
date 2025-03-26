@@ -17,25 +17,21 @@ def track(bus_no):
 def update_location():
     try:
         data = request.get_json()
-        print(f"Received Data: {data}")  # Debugging
+        print("Received Data:", data)  # Debugging
+        if not data or 'bus_no' not in data or 'lat' not in data or 'lng' not in data:
+            return jsonify({"error": "Missing data"}), 400  # Return 400 if required fields are missing
 
-        bus_no = data.get("bus_no")
-        lat = data.get("lat")
-        lng = data.get("lng")
-        area = data.get("area", "Unknown")
+        bus_no = data['bus_no']
+        if bus_no not in bus_locations:
+            bus_locations[bus_no] = []
+        bus_locations[bus_no].append(data)
 
-        # Validate data
-        if bus_no and lat is not None and lng is not None:
-            if bus_no not in bus_locations:
-                bus_locations[bus_no] = []
-            bus_locations[bus_no].append({"lat": lat, "lng": lng, "area": area})
+        return jsonify({"status": "success"}), 200
 
-            return jsonify({"status": "success"})
-        else:
-            return jsonify({"status": "error", "message": "Invalid data"}), 400
     except Exception as e:
-        print("Error:", e)
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print("Error:", str(e))
+        return jsonify({"error": "Invalid request"}), 400
+
 
 
 @app.route('/get_locations/<bus_no>')
