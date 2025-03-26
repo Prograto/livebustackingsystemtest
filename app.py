@@ -18,8 +18,10 @@ def update_location():
     try:
         data = request.get_json()
         print("Received Data:", data)  # Debugging
-        if not data or 'bus_no' not in data or 'lat' not in data or 'lng' not in data:
-            return jsonify({"error": "Missing data"}), 400  # Return 400 if required fields are missing
+        if not data:
+            return jsonify({"error": "No data received"}), 400
+        if 'bus_no' not in data or 'lat' not in data or 'lng' not in data:
+            return jsonify({"error": "Missing required fields"}), 400  # Debug issue
 
         bus_no = data['bus_no']
         if bus_no not in bus_locations:
@@ -31,6 +33,7 @@ def update_location():
     except Exception as e:
         print("Error:", str(e))
         return jsonify({"error": "Invalid request"}), 400
+
 
 
 
