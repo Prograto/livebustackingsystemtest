@@ -56,10 +56,17 @@
     let marker;
 
     async function updateMap() {
-        const response = await fetch(`/get_locations/${busNo}`);
-        const locations = await response.json();
+        try {
+            const response = await fetch(`/get_locations/${busNo}`);
+            const locations = await response.json();
 
-        if (locations.length > 0) {
+            console.log("Fetched locations:", locations); // Debugging
+
+            if (!Array.isArray(locations) || locations.length === 0) {
+                console.warn("No location data available");
+                return;
+            }
+
             const latlngs = locations.map(loc => [loc.lat, loc.lng]);
             polyline.setLatLngs(latlngs);
 
@@ -74,11 +81,14 @@
 
             map.setView(lastLatLng, 18, { animate: true });
 
-            document.getElementById('location').innerText = lastLocation.area;
+            document.getElementById('location').innerText = lastLocation.area || "Unknown";
             document.getElementById('lat').innerText = lastLocation.lat;
             document.getElementById('lng').innerText = lastLocation.lng;
+        } catch (error) {
+            console.error("Error fetching bus data:", error);
         }
     }
+
 
     setInterval(updateMap, 3000);
 </script>
