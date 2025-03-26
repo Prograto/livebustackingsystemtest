@@ -62,14 +62,13 @@
 
     const map = L.map('map').setView([0, 0], 15);
     
-    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: '&copy; Google Maps'
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     // Custom bus icon
     var busIcon = L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/854/854992.png',  // Use a proper bus icon
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/854/854992.png',  // Bus icon URL
         iconSize: [40, 40], 
         iconAnchor: [20, 20]
     });
@@ -82,8 +81,6 @@
             const response = await fetch(`/get_locations/${busNo}`);
             const locations = await response.json();
 
-            console.log("Fetched locations:", locations);  // Debugging
-
             if (!Array.isArray(locations) || locations.length === 0) {
                 console.warn("No valid location data received");
                 return;
@@ -95,7 +92,7 @@
                 return;
             }
 
-            const latlngs = validLocations.map(loc => [loc.latitude, loc.longitude]);  // Use correct keys
+            const latlngs = validLocations.map(loc => [loc.latitude, loc.longitude]);
             polyline.setLatLngs(latlngs);
 
             const lastLocation = validLocations[validLocations.length - 1];
@@ -116,7 +113,6 @@
             console.error("Error fetching bus data:", error);
         }
     }
-
 
     setInterval(updateMap, 3000);
 </script>
