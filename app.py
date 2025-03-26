@@ -41,8 +41,9 @@ def update_location():
 @app.route('/get_locations/<bus_no>')
 def get_locations(bus_no):
     data = bus_locations.get(bus_no, [])
-    print(f"Requested Bus: {bus_no}, Data: {data}")  # Debugging
+    print(f"Bus: {bus_no}, Data in Server: {data}")  # Debug
     return jsonify(data)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
