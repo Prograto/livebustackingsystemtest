@@ -15,23 +15,28 @@ def track(bus_no):
 
 @app.route('/update_location', methods=['POST'])
 def update_location():
-    data = request.json
-    bus_no = data.get('bus_no')
-    lat = data.get('lat')
-    lng = data.get('lng')
-    area = data.get('area', 'Unknown')
+    try:
+        data = request.get_json()
+        print(f"Received Data: {data}")  # Debugging
 
-    if bus_no:
-        if bus_no not in bus_locations:
-            bus_locations[bus_no] = []
-        bus_locations[bus_no].append({'lat': lat, 'lng': lng, 'area': area})
+        bus_no = data.get("bus_no")
+        lat = data.get("lat")
+        lng = data.get("lng")
+        area = data.get("area", "Unknown")
 
-        # Keep only the last 20 locations for each bus
-        if len(bus_locations[bus_no]) > 20:
-            bus_locations[bus_no].pop(0)
+        # Validate data
+        if bus_no and lat is not None and lng is not None:
+            if bus_no not in bus_locations:
+                bus_locations[bus_no] = []
+            bus_locations[bus_no].append({"lat": lat, "lng": lng, "area": area})
 
-        return jsonify({"status": "success"}), 200
-    return jsonify({"status": "error", "message": "Invalid data"}), 400
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"status": "error", "message": "Invalid data"}), 400
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route('/get_locations/<bus_no>')
 def get_locations(bus_no):
